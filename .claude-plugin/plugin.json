@@ -1,0 +1,63 @@
+{
+  "name": "lollipop",
+  "version": "1.0.0",
+  "description": "Lollipop Bot MCP — AI 控制遊戲 bot 的 MCP 伺服器",
+  "author": {
+    "name": "m1105"
+  },
+  "keywords": ["bot", "mcp", "game"],
+
+  "skills": "./skills/",
+
+  "mcpServers": {
+    "lollipop": {
+      "command": "python3",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/run.py"],
+      "env": {
+        "CLAUDE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}",
+        "CLAUDE_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}",
+        "LOLLIPOP_TAILSCALE_KEY": "${user_config.tailscale_key}",
+        "LOLLIPOP_SERVER_URL": "${user_config.server_url}",
+        "LOLLIPOP_CARD_ID": "${user_config.card_id}",
+        "LOLLIPOP_DIRECT": "${user_config.direct_ip}"
+      }
+    }
+  },
+
+  "userConfig": {
+    "tailscale_key": {
+      "type": "string",
+      "title": "Tailscale API Key",
+      "description": "tskey-api-xxx，多台模式用",
+      "sensitive": true
+    },
+    "server_url": {
+      "type": "string",
+      "title": "Server URL",
+      "description": "例: https://lolly.lc1llm.xyz，多台模式用"
+    },
+    "card_id": {
+      "type": "string",
+      "title": "Card ID",
+      "description": "卡號，多張用逗號分隔 (例: XXXX-XXXX-XXXX-XXXX)"
+    },
+    "direct_ip": {
+      "type": "string",
+      "title": "Direct IP",
+      "description": "直連 IP (例: 192.168.0.114)，單台模式填這個就好"
+    }
+  },
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/setup.py\" \"${CLAUDE_PLUGIN_DATA}\" \"${CLAUDE_PLUGIN_ROOT}\""
+          }
+        ]
+      }
+    ]
+  }
+}

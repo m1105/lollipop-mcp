@@ -1,0 +1,18 @@
+{
+  "name": "mcp",
+  "owner": {
+    "name": "m1105"
+  },
+  "plugins": [
+    {
+      "name": "lollipop",
+      "source": ".",
+      "description": "Lollipop Bot MCP — AI 控制遊戲 bot，130+ 工具、43 skills、Fleet 管理、排班、分析",
+      "version": "1.0.0",
+      "author": {
+        "name": "m1105"
+      },
+      "repository": "https://github.com/m1105/lollipop-mcp"
+    }
+  ]
+}
