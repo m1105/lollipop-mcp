@@ -1,18 +1,21 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "mcp",
+  "description": "Lollipop Bot MCP Plugin — AI-powered game bot management",
   "owner": {
     "name": "m1105"
   },
   "plugins": [
     {
       "name": "lollipop",
-      "source": ".",
-      "description": "Lollipop Bot MCP — AI 控制遊戲 bot，130+ 工具、43 skills、Fleet 管理、排班、分析",
+      "source": "./",
+      "description": "Lollipop Bot MCP — 130+ tools, 43 skills, fleet management, scheduling, analytics",
       "version": "1.0.0",
       "author": {
         "name": "m1105"
       },
-      "repository": "https://github.com/m1105/lollipop-mcp"
+      "category": "productivity",
+      "homepage": "https://github.com/m1105/lollipop-mcp"
     }
   ]
 }
