@@ -200,3 +200,193 @@
 - 不要連續快速操作同一個 NPC
 - 操作完確認 UI 乾淨再做下一步
 - 各模組流程不能混用（商店/倉庫/傳送各有各的按鈕和流程）
+
+---
+
+## Skill 系統
+
+### 查看 / 執行 skill
+```
+# 列出所有 skill
+skill_list()
+
+# 查看 skill 詳細步驟
+skill_get(name="goto-blessed-ats")
+
+# 執行 skill（自動逐步呼叫 MCP tool）
+skill_run(name="goto-blessed-ats", host="100.85.235.33", port=5577)
+```
+
+### 目前可用的 skill
+
+| skill | 用途 | 參數 |
+|-------|------|------|
+| goto-blessed-ats | 前往祝福之地掛 ATS | $zone, $race |
+| ats-watch-and-start | ATS 結束後自動啟動 bot | 無 |
+| switch-profile | 切換設定檔並重啟 | $profile |
+
+### skill 參數傳遞
+
+skill 步驟中的 `$variable` 是參數佔位符，執行前需替換：
+- `$zone` = `前往污染的祝福之地` 或 `前往墮落的祝福之地`
+- `$race` = `妖精之地` | `人類之地` | `妖魔之地` | `精靈之地`
+- `$profile` = 設定檔名稱（從 `bot_profile_list()` 查）
+
+### skill 手動執行
+
+如果 `skill_run` 失敗，可以照 `skill_get` 回傳的步驟**逐步手動執行**：
+1. 每步呼叫對應的 MCP tool
+2. 遵守 `delay_ms` 等待時間
+3. 檢查 `wait_for` 條件（bot_dialogs 找指定 Layout）
+4. 失敗時不要繼續，先處理錯誤
+
+### skill 建立
+```
+skill_create(
+  name="my-skill",
+  description="skill 說明",
+  steps='[{"tool":"bot_stop","comment":"停止"},{"tool":"bot_start","delay_ms":1000,"comment":"啟動"}]'
+)
+```
+
+---
+
+## ATS（自動訓練系統）
+
+### ATS 流程
+1. 用說話的卷軸傳送到「祝福之地」（共同|祝福之地）
+2. 找 NPC **諾納梅**，互動
+3. 選地區：「前往污染的祝福之地」或「前往墮落的祝福之地」
+4. 選種族：「妖精之地」「人類之地」「妖魔之地」「精靈之地」
+5. 按 **F8**（key=297）啟動 ATS
+6. 確認 `ATSMsgHudLayout` 出現 = ATS 啟動成功
+
+### ATS 時間讀取
+- `bot_uitree()` → 找 `ATSMsgHudLayout` → `Root` → `Tx_Time` → `protectedChildren[0]` → `label_text`
+- 例如顯示 `"2小時59分鐘"`
+- addr 是動態的，每次要從 uitree 重新找
+
+### ATS 結束偵測
+- `bot_dialogs()` 沒有 `ATSMsgHudLayout` = ATS 結束
+- 結束後執行 `bot_start()` 開始掛機
+
+---
+
+## 祝福之地 NPC 與座標
+
+| NPC | 功能 | 備註 |
+|-----|------|------|
+| 諾納梅 | 選擇祝福之地區域 | entity_id 每次不同，從 bot_entities 取 |
+
+### 祝福之地區域
+| 地區 | 種族選項 |
+|------|---------|
+| 污染的祝福之地 | 妖精之地、人類之地、妖魔之地、精靈之地 |
+| 墮落的祝福之地 | 妖精之地、人類之地、妖魔之地、精靈之地 |
+
+---
+
+## 操作時序要求
+
+每步之間的**最低等待時間**（太快會操作失敗）：
+
+| 操作 | 等待 |
+|------|------|
+| interact NPC 後 | 1500-3000ms |
+| 點 NPC 對話選項後 | 2000ms |
+| 傳送後確認位置 | 5000ms |
+| F12/F8 按鍵後 | 1500-3000ms |
+| bot_click 後 | 1000ms |
+| shop_buy 前點 Bt_Npc_Buy 後 | 等 NpcShopLayout visible |
+| StorageLayout 開啟後 | 2500ms（載入物品） |
+| walk 每步間隔 | 800ms |
+
+---
+
+## 多機台操作
+
+- 每台機器用 `host` + `port` 區分
+- `bot_list()` 查所有在線機器
+- 操作時**永遠帶 host 和 port 參數**
+- 每台的狀態（ATS時間、profile、bot狀態）獨立追蹤，不可混用
+- 角色名可從 bot_list 對應到 host:port
+
+---
+
+## 說話的卷軸注意
+
+- **絕對不可用 bot_useitem 使用說話的卷軸** — 會觸發隨機傳送
+- 正確流程：F12 開選單 → `/scroll_dest` POST 點目的地
+- `bot_teleport_scroll(dest="村莊|傳送點")` 是封裝好的高階 tool
+- 如果 `bot_teleport_scroll` 報錯「找不到卷軸」，改用手動流程：
+  1. `bot_glfw_key(key=301)` — F12
+  2. `bot_dialogs()` — 確認 TalkingScrollLayout
+  3. `dll_http(POST, /scroll_dest, {"dest":"目的地"})` — 點擊
+
+---
+
+## 斷線與異常處理
+
+### 伺服器斷線偵測
+- DLL 監測 `ServerSelect_MsgPopup` 內容含「伺服器中斷」「與伺服器」「中斷連線」「斷線」
+- 偵測到 → 通知 opener → kill LC.exe → opener 自動重啟
+
+### bot 死亡
+- `bot_status()` → hp=0 表示角色死亡
+- 死亡後自動回村（如果有設定）或等待手動處理
+
+---
+
+## API 回傳值參考
+
+### result 值含義
+
+| result | 含義 | 說明 |
+|--------|------|------|
+| 2 | **成功** | 點擊/互動/操作成功執行 |
+| 1 | **成功（部分）** | 操作執行但可能需確認結果 |
+| 0 | **無效/未執行** | 按鍵無效、UI 不可見、目標不存在 |
+| -17 | **找不到** | widget/keyword 在指定 dialog 中不存在 |
+| 負數（大）| **記憶體位址** | npc_click 回傳點擊的 node 地址（非錯誤） |
+
+### 常見 tool 回傳判斷
+
+| tool | 成功 | 失敗 |
+|------|------|------|
+| bot_interact | result=2 | result=0 或 error |
+| bot_click | result=2 | widget not found |
+| bot_npc_click | result=1 或負數（地址）| result=-17（找不到） |
+| bot_glfw_key | result=0（正常）| - |
+| dll_http POST /scroll_dest | result=2 | error |
+| bot_start / bot_stop | ok=1 | error |
+
+### 狀態確認方式
+
+| 要確認什麼 | 方法 |
+|-----------|------|
+| UI 選單是否開啟 | `bot_dialogs()` → 找 Layout 名稱 |
+| 角色是否登入 | `bot_status()` → logged_in=1 |
+| Bot 是否運行 | `bot_status()` → bot_running=1 |
+| ATS 是否啟動 | `bot_dialogs()` → 有 ATSMsgHudLayout |
+| 傳送是否完成 | `bot_position()` → 座標改變 |
+| NPC 對話是否開啟 | `bot_dialogs()` → 有 NpcTalkLayout |
+
+### GLFW 快捷鍵對照
+
+| 鍵 | code | 用途 |
+|----|------|------|
+| ESC | 256 | 關閉 UI |
+| F8 | 297 | ATS 開關 |
+| F10 | 299 | 變身 |
+| F11 | 300 | 祝福卷軸書籤 |
+| F12 | 301 | 說話的卷軸 |
+
+### dll_http 重要端點
+
+| method | path | 用途 |
+|--------|------|------|
+| POST | /scroll_dest | 點擊卷軸目的地（{"dest":"祝福之地"}） |
+| POST | /bot/interact | 互動 NPC（{"entity_id":1665}） |
+| GET | /scroll_list | 列出卷軸目的地清單 |
+| GET | /status | DLL 狀態 |
+| GET | /uitree | UI 節點樹 |

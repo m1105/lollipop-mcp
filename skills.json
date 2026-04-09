@@ -1,0 +1,132 @@
+{
+  "switch_profile": {
+    "description": "切換設定檔並重啟 bot。停止 bot → 載入新 profile（全部設定更新）→ 重啟 bot。參數: $profile=設定檔名稱",
+    "steps": [
+      {
+        "tool": "bot_stop",
+        "comment": "停止 bot"
+      },
+      {
+        "tool": "bot_profile_load",
+        "params": {
+          "name": "$profile"
+        },
+        "delay_ms": 1000,
+        "comment": "載入新設定檔（全部重置）"
+      },
+      {
+        "tool": "bot_start",
+        "delay_ms": 500,
+        "comment": "重啟 bot"
+      }
+    ]
+  },
+  "goto_blessed_ats": {
+    "description": "前往祝福之地掛ATS。用卷軸傳送→找諾納梅→選地區→選種族→按F8啟動ATS→讀剩餘時間→時間到啟動bot。⚠️前置條件：玩家必須將ATS開關放到快捷鍵F8。參數: $zone=前往污染的祝福之地|前往墮落的祝福之地, $race=妖精之地|人類之地|妖魔之地|精靈之地",
+    "steps": [
+      {
+        "tool": "bot_scroll_list",
+        "comment": "查背包卷軸類型",
+        "save_as": "scrolls"
+      },
+      {
+        "tool": "bot_glfw_key",
+        "params": {
+          "key": 301
+        },
+        "delay_ms": 1500,
+        "comment": "按F12開卷軸選單"
+      },
+      {
+        "tool": "bot_dialogs",
+        "delay_ms": 1000,
+        "comment": "確認TalkingScrollLayout可見",
+        "wait_for": "TalkingScrollLayout"
+      },
+      {
+        "tool": "dll_http",
+        "params": {
+          "method": "POST",
+          "path": "/scroll_dest",
+          "body": "{\"dest\":\"祝福之地\"}"
+        },
+        "delay_ms": 1000,
+        "comment": "點擊祝福之地"
+      },
+      {
+        "tool": "bot_position",
+        "delay_ms": 5000,
+        "comment": "等傳送完成，確認位置"
+      },
+      {
+        "tool": "bot_entities",
+        "delay_ms": 1000,
+        "comment": "找NPC諾納梅",
+        "save_as": "entities"
+      },
+      {
+        "tool": "dll_http",
+        "params": {
+          "method": "POST",
+          "path": "/bot/interact",
+          "body": "{\"entity_id\":1665}"
+        },
+        "delay_ms": 1500,
+        "comment": "互動諾納梅(id可能不同需從entities確認)"
+      },
+      {
+        "tool": "bot_dialogs",
+        "delay_ms": 1000,
+        "comment": "確認NpcTalkLayout可見",
+        "wait_for": "NpcTalkLayout"
+      },
+      {
+        "tool": "bot_npc_click",
+        "params": {
+          "dialog": "NpcTalkLayout",
+          "keyword": "$zone"
+        },
+        "delay_ms": 2000,
+        "comment": "選地區(污染/墮落)，未指定時提示玩家選擇"
+      },
+      {
+        "tool": "bot_npc_click",
+        "params": {
+          "dialog": "NpcTalkLayout",
+          "keyword": "$race"
+        },
+        "delay_ms": 3000,
+        "comment": "選種族(妖精/人類/妖魔/精靈)，未指定時提示玩家選擇"
+      },
+      {
+        "tool": "bot_glfw_key",
+        "params": {
+          "key": 297
+        },
+        "delay_ms": 3000,
+        "comment": "按F8啟動ATS(⚠️玩家須事先將ATS開關放到F8快捷鍵)"
+      },
+      {
+        "tool": "bot_dialogs",
+        "delay_ms": 2000,
+        "comment": "確認ATSMsgHudLayout可見=ATS啟動成功。讀Tx_Time剩餘時間，時間到後執行bot_start啟動外掛",
+        "wait_for": "ATSMsgHudLayout"
+      }
+    ]
+  },
+  "ats_watch_and_start": {
+    "description": "ATS 結束後啟動外掛。檢查 ATSMsgHudLayout 是否消失，消失就 bot_start。搭配 goto_blessed_ats 使用，在 ATS 啟動後執行此 skill 等待 ATS 結束。",
+    "steps": [
+      {
+        "tool": "bot_dialogs",
+        "comment": "確認 ATSMsgHudLayout 是否還在",
+        "save_as": "dialogs"
+      },
+      {
+        "tool": "bot_start",
+        "comment": "如果 ATSMsgHudLayout 不在 dialogs 中=ATS 結束，啟動外掛。如果還在=ATS 還在跑，此步驟跳過",
+        "wait_for": "!ATSMsgHudLayout"
+      }
+    ]
+  }
+}

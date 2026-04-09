@@ -82,3 +82,8 @@ dist/
     ├── skill-script/
     └── low-level-ops/
 ```
+## 安裝命令
+```
+  claude plugin marketplace add m1105/lollipop-mcp
+  claude plugin install lollipop@mcp
+```

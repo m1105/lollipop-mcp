@@ -83,16 +83,27 @@ def register(mcp) -> None:
         server_page: int = 1,
         server_num: int = 1,
         char_slot: int = 0,
+        country_code: str = "",
+        phone: str = "",
+        sms_api_url: str = "",
+        mail_password: str = "",
+        mail_domain: str = "",
         host: str = "",
     ) -> str:
-        """新增帳號 / Add a new account to opener."""
-        return await _opener_http("POST", "/api/accounts", body={
+        """新增帳號 / Add a new account to opener. 含裝置認證用欄位 (country_code, phone, sms_api_url)."""
+        body = {
             "username": username,
             "password": password,
             "server_page": server_page,
             "server_num": server_num,
             "char_slot": char_slot,
-        }, host=host)
+        }
+        if country_code: body["country_code"] = country_code
+        if phone: body["phone"] = phone
+        if sms_api_url: body["sms_api_url"] = sms_api_url
+        if mail_password: body["mail_password"] = mail_password
+        if mail_domain: body["mail_domain"] = mail_domain
+        return await _opener_http("POST", "/api/accounts", body=body, host=host)
 
     # ------------------------------------------------------------------
     #  Instance control
